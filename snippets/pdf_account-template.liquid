@@ -1,0 +1,122 @@
+<script type="text/javascript">
+  function pdf_custom_upload(id,shop,email,ordername)
+  {
+    var btnEvent = event.target;
+
+    var generate_pdf_url = "https://apps.architechpro.com/shopify/public/pdfgenerator/generatepdf";
+
+    if(/^((?!chrome|android).)*safari/i.test(navigator.userAgent))
+    {
+          var email = prompt("Please enter your email:"); 
+          if (email === null) {
+              return; //break out of the function early
+          }
+
+          if (!email == "")
+          {
+              if(!email.match( /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/))
+              {
+                  alert('Not a valid email.');
+                  return;
+              }
+          }
+          else
+          {
+              alert('Not a valid email.');
+              return;
+          }
+    }
+
+
+    var request = new XMLHttpRequest();
+      request.open('POST', generate_pdf_url, true);
+      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+
+      request.onload = function() {
+
+        if(request.status === 200) {
+
+          if(/^((?!chrome|android).)*safari/i.test(navigator.userAgent))
+          {
+              alert('Email has been successfully sent to: '+email);
+              return;
+          }
+
+          if(ordername)
+          {
+            var filename = ordername+'.pdf';
+          }
+          else
+          {
+            var filename = 'invoice.pdf';
+          }
+          
+          if((navigator.userAgent.indexOf('Firefox') > -1))
+          {
+            var link = document.createElement('a');
+            link.href = "data:application/pdf;base64, "+encodeURI(request.response);
+            link.target = "_blank";
+            link.download = filename;
+
+            document.body.appendChild(link);
+
+            link.click();
+          }
+          else
+          {
+            coursesDebugBase64("data:application/pdf;base64, "+encodeURI(request.response));
+          }
+        }
+        else
+        {
+          alert("Error! Something went wrong."); 
+        }
+      };
+
+      request.send("shop="+shop+"&id="+id+"&email="+email+"&multiple=null&fromadmin=true&ver=1");
+  }
+  function coursesDebugBase64(base64URL)
+  {
+      var win = window.open();
+      win.document.write('<iframe src="' + base64URL  + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+  }
+</script>
+  {% paginate customer.orders by 20 %}
+    {% if customer.orders.size != 0 %}
+
+      <table class="responsive-table">
+        <thead>
+          <tr>
+            <th>{{ 'customer.orders.order_number' | t }}</th>
+            <th>{{ 'customer.orders.date' | t }}</th>
+            <th>{{ 'customer.orders.payment_status' | t }}</th>
+            <th>{{ 'customer.orders.fulfillment_status' | t }}</th>
+            <th>{{ 'customer.orders.total' | t }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in customer.orders %}
+            <tr>
+              <td data-label="{{ 'customer.orders.order_number' | t }}">
+                <a href="{{ order.customer_url }}" class="btn btn--secondary btn--small">{{ order.name }}</a>
+              </td>
+              <td data-label="{{ 'customer.orders.date' | t }}">{{ order.created_at | time_tag: format: 'date' }}</td>
+              <td data-label="{{ 'customer.orders.payment_status' | t }}">{{ order.financial_status_label }}</td>
+              <td data-label="{{ 'customer.orders.fulfillment_status' | t }}">{{ order.fulfillment_status_label }}</td>
+              <td data-label="{{ 'customer.orders.total' | t }}">{{ order.total_price | money }}</td>
+              <td data-label="download"><span class="btn button" onclick="pdf_custom_upload({{order.id}},'{{shop.permanent_domain}}',null,'{{order.name}}')">Invoice</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% else %}
+
+      <p>{{ 'customer.orders.none' | t }}</p>
+
+    {% endif %}
+    {% if paginate.pages > 1 %}
+      {% include 'pagination' %}
+    {% endif %}
+  {% endpaginate %}

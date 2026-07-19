@@ -1,0 +1,83 @@
+
+{% comment %}BSS B2B Login{% endcomment %}
+{% capture redirectScript %}{% render 'bsscommerce-redirect-product-page-logic', product: product, collection: collection %}{% endcapture %}{% unless redirectScript contains "Liquid error" %}{%- assign redirectScript = redirectScript | strip | split: ',' -%}{%- if redirectScript[0] != blank -%}<script type="text/javascript" id="hp-behavior">const url = "https://login-to-access-page-api.bsscommerce.com/behavior"; fetch(url, { method: "POST", headers: { "Content-Type": "application/json", }, body: JSON.stringify({domain: window.Shopify.shop, events: "hp-access" })});</script><script id="bss-redirect" type="text/javascript">if ( "{{ routes.root_url }}" != "/" && "{{ redirectScript[0] }}".indexOf("-") === -1) {window.location.replace( "{{ routes.root_url }}" + "{{ redirectScript[0] }}" )} else { window.location.replace("{{ redirectScript[0] }}")}</script>{% endif %}{%- if redirectScript[1] != blank -%}{{ redirectScript[1] }}{% endif -%}{% endunless %}
+{% comment %}BSS B2B Login{% endcomment %}
+{% capture redirectScript %}
+  {% render 'bsscommerce-redirect-product-page-logic', product: product, collection: collection %}
+{% endcapture %}
+{% unless redirectScript contains "Liquid error" %}
+  {%- assign redirectScript = redirectScript | strip | split: ',' -%}
+  {%- if redirectScript[0] != blank -%}
+    <script type="text/javascript" id="hp-behavior">
+      const url = "https://login-to-access-page-api.bsscommerce.com/behavior";
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain: window.Shopify.shop,
+          events: "hp-access"
+        })
+      });
+    </script>
+    <script id="bss-redirect" type="text/javascript">
+      if ("{{ routes.root_url }}" != "/" && "{{ redirectScript[0] }}".indexOf("-") === -1) {
+        window.location.replace("{{ routes.root_url }}" + "{{ redirectScript[0] }}");
+      } else {
+        window.location.replace("{{ redirectScript[0] }}");
+      }
+    </script>
+  {%- endif -%}
+  {%- if redirectScript[1] != blank -%}
+    {{ redirectScript[1] }}
+  {%- endif -%}
+{% endunless %}
+
+
+{% comment %}
+  The contents of the product.liquid template can be found in /sections/product-template.liquid
+{% endcomment %}
+
+{% comment %} {% if customer and customer.tags contains 'Wholesale' %} {% endcomment %}
+  {% section 'product-template' %}
+  {% section 'product-recommendations' %}
+{% comment %} {% endif %} {% endcomment %}
+
+<div id="backToCollection"></div>
+
+<script>
+  // Override default values of shop.strings for each template.
+  // Alternate product templates can change values of
+  // add to cart button, sold out, and unavailable states here.
+  theme.productStrings = {
+    addToCart: {{ 'products.product.add_to_cart' | t | json }},
+    soldOut: {{ 'products.product.sold_out' | t | json }},
+    unavailable: {{ 'products.product.unavailable' | t | json }}
+  };
+
+  if (sessionStorage.backToCollection) {
+    theme.backToCollection = {};
+    theme.backToCollection.collection = JSON.parse(sessionStorage.backToCollection);
+    var productCollections = {{ product.collections | json }};
+    var showCollection = false;
+    if (productCollections) {
+      productCollections.forEach(function (collection) {
+        if (collection.title === theme.backToCollection.collection.title) {
+          showCollection = true;
+        }
+      });
+    }
+    if (showCollection) {
+      var backToCollectionHTML =
+        '<div class="text-center return-link-wrapper page-width">' +
+        '<a href="' +
+        theme.backToCollection.collection.link +
+        '" class="btn btn--secondary btn--has-icon-before">{% include "icon-arrow-left" %}{{ "products.product.back_to_collection" | t }} ' +
+        theme.backToCollection.collection.title +
+        "</a></div>";
+      var backToCollectionContainer = document.getElementById("backToCollection");
+      backToCollectionContainer.insertAdjacentHTML("afterbegin", backToCollectionHTML);
+    }
+  }
+</script>
+
+{% assign current_variant = product.selected_or_first_available_variant %}
