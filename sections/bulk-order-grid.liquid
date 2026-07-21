@@ -7,12 +7,47 @@
   </div>
 
   {%- assign matched_count = 0 -%}
+  {%- capture table_head -%}{%- endcapture -%}
+  {%- capture table_body -%}{%- endcapture -%}
+
   {%- if section.settings.collection != blank -%}
-    {%- for product in section.settings.collection.products -%}
-      {%- if section.settings.tag == blank or product.tags contains section.settings.tag -%}
-        {%- assign matched_count = matched_count | plus: 1 -%}
-      {%- endif -%}
-    {%- endfor -%}
+    {%- paginate section.settings.collection.products by 250 -%}
+      {%- for product in section.settings.collection.products -%}
+        {%- if section.settings.tag == blank or product.tags contains section.settings.tag -%}
+          {%- assign matched_count = matched_count | plus: 1 -%}
+
+          {%- if matched_count == 1 -%}
+            {%- capture table_head -%}
+              {%- for variant in product.variants -%}<th>{{ variant.title }}</th>{%- endfor -%}
+            {%- endcapture -%}
+          {%- endif -%}
+
+          {%- capture row -%}
+            <tr>
+              <td class="bulk-order-table__product-col">{{ product.title }}</td>
+              {%- for variant in product.variants -%}
+                <td>
+                  {%- if variant.available -%}
+                    <input
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      step="1"
+                      value="0"
+                      class="bulk-order-table__input"
+                      data-variant-id="{{ variant.id }}"
+                      aria-label="{{ product.title }} {{ variant.title }} quantity">
+                  {%- else -%}
+                    <input type="number" class="bulk-order-table__input" value="0" disabled title="Sold out">
+                  {%- endif -%}
+                </td>
+              {%- endfor -%}
+            </tr>
+          {%- endcapture -%}
+          {%- assign table_body = table_body | append: row -%}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endpaginate -%}
   {%- endif -%}
 
   {%- if matched_count == 0 -%}
@@ -25,41 +60,11 @@
         <thead>
           <tr>
             <th class="bulk-order-table__product-col">Product</th>
-            {%- for product in section.settings.collection.products -%}
-              {%- if section.settings.tag == blank or product.tags contains section.settings.tag -%}
-                {%- for variant in product.variants -%}
-                  <th>{{ variant.title }}</th>
-                {%- endfor -%}
-                {%- break -%}
-              {%- endif -%}
-            {%- endfor -%}
+            {{ table_head }}
           </tr>
         </thead>
         <tbody>
-          {%- for product in section.settings.collection.products -%}
-            {%- if section.settings.tag == blank or product.tags contains section.settings.tag -%}
-              <tr>
-                <td class="bulk-order-table__product-col">{{ product.title }}</td>
-                {%- for variant in product.variants -%}
-                  <td>
-                    {%- if variant.available -%}
-                      <input
-                        type="number"
-                        inputmode="numeric"
-                        min="0"
-                        step="1"
-                        value="0"
-                        class="bulk-order-table__input"
-                        data-variant-id="{{ variant.id }}"
-                        aria-label="{{ product.title }} {{ variant.title }} quantity">
-                    {%- else -%}
-                      <input type="number" class="bulk-order-table__input" value="0" disabled title="Sold out">
-                    {%- endif -%}
-                  </td>
-                {%- endfor -%}
-              </tr>
-            {%- endif -%}
-          {%- endfor -%}
+          {{ table_body }}
         </tbody>
       </table>
 
