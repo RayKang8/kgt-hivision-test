@@ -1,0 +1,214 @@
+<div class="page-width bulk-order-{{ section.id }}">
+  <div class="section-header text-center">
+    <h1>{{ section.settings.heading }}</h1>
+    {%- if section.settings.text != blank -%}
+      <div class="rte">{{ section.settings.text }}</div>
+    {%- endif -%}
+  </div>
+
+  {%- assign matched_count = 0 -%}
+  {%- if section.settings.collection != blank -%}
+    {%- for product in section.settings.collection.products -%}
+      {%- if section.settings.tag == blank or product.tags contains section.settings.tag -%}
+        {%- assign matched_count = matched_count | plus: 1 -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+
+  {%- if matched_count == 0 -%}
+    <p class="text-center">
+      No products found. Pick a collection for this section in the theme editor, and make sure it contains products tagged &ldquo;{{ section.settings.tag }}&rdquo;.
+    </p>
+  {%- else -%}
+    <div class="bulk-order-table-wrapper" data-bulk-order-root="{{ section.id }}">
+      <table class="bulk-order-table">
+        <thead>
+          <tr>
+            <th class="bulk-order-table__product-col">Product</th>
+            {%- for product in section.settings.collection.products -%}
+              {%- if section.settings.tag == blank or product.tags contains section.settings.tag -%}
+                {%- for variant in product.variants -%}
+                  <th>{{ variant.title }}</th>
+                {%- endfor -%}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
+          </tr>
+        </thead>
+        <tbody>
+          {%- for product in section.settings.collection.products -%}
+            {%- if section.settings.tag == blank or product.tags contains section.settings.tag -%}
+              <tr>
+                <td class="bulk-order-table__product-col">{{ product.title }}</td>
+                {%- for variant in product.variants -%}
+                  <td>
+                    {%- if variant.available -%}
+                      <input
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="0"
+                        class="bulk-order-table__input"
+                        data-variant-id="{{ variant.id }}"
+                        aria-label="{{ product.title }} {{ variant.title }} quantity">
+                    {%- else -%}
+                      <input type="number" class="bulk-order-table__input" value="0" disabled title="Sold out">
+                    {%- endif -%}
+                  </td>
+                {%- endfor -%}
+              </tr>
+            {%- endif -%}
+          {%- endfor -%}
+        </tbody>
+      </table>
+
+      <div class="bulk-order-table__actions">
+        <button type="button" class="btn" data-bulk-order-submit>{{ section.settings.button_label }}</button>
+        <span class="bulk-order-table__status" data-bulk-order-status role="status"></span>
+      </div>
+    </div>
+  {%- endif -%}
+</div>
+
+<style>
+  .bulk-order-{{ section.id }} .bulk-order-table-wrapper {
+    overflow-x: auto;
+    margin-top: 2em;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 480px;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table th,
+  .bulk-order-{{ section.id }} .bulk-order-table td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__product-col {
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__input {
+    width: 64px;
+    text-align: center;
+    padding: 6px;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__actions {
+    margin-top: 1.5em;
+    display: flex;
+    align-items: center;
+    gap: 1em;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__status {
+    font-size: 0.9em;
+  }
+</style>
+
+<script>
+  (function() {
+    var root = document.querySelector('[data-bulk-order-root="{{ section.id }}"]');
+    if (!root) return;
+
+    var button = root.querySelector('[data-bulk-order-submit]');
+    var status = root.querySelector('[data-bulk-order-status]');
+
+    button.addEventListener('click', function() {
+      var inputs = root.querySelectorAll('input[data-variant-id]');
+      var items = [];
+
+      inputs.forEach(function(input) {
+        var qty = parseInt(input.value, 10);
+        if (qty > 0) {
+          items.push({
+            id: parseInt(input.getAttribute('data-variant-id'), 10),
+            quantity: qty
+          });
+        }
+      });
+
+      if (items.length === 0) {
+        status.textContent = 'Enter a quantity greater than 0 in at least one field.';
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = 'Adding to cart…';
+
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ items: items })
+      })
+        .then(function(response) {
+          if (!response.ok) {
+            return response.json().then(function(err) {
+              throw new Error(err.description || err.message || 'Could not add items to cart.');
+            });
+          }
+          return response.json();
+        })
+        .then(function() {
+          window.location.href = '/cart';
+        })
+        .catch(function(err) {
+          button.disabled = false;
+          status.textContent = err.message;
+        });
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Bulk order grid",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Bulk Order"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Description text"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection",
+      "info": "Pick the collection whose products should appear as rows in the grid."
+    },
+    {
+      "type": "text",
+      "id": "tag",
+      "label": "Required tag filter",
+      "default": "bulk",
+      "info": "Only products in the collection above that also have this tag will be shown. Leave blank to disable tag filtering."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Add to cart button label",
+      "default": "Add to Cart"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Bulk order grid"
+    }
+  ]
+}
+{% endschema %}
