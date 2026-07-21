@@ -28,10 +28,18 @@
               {%- for variant in product.variants -%}
                 <td>
                   {%- if variant.available -%}
+                    {%- assign caps_quantity = false -%}
+                    {%- if variant.inventory_management == 'shopify' and variant.inventory_policy == 'deny' -%}
+                      {%- assign caps_quantity = true -%}
+                    {%- endif -%}
                     <input
                       type="number"
                       inputmode="numeric"
                       min="0"
+                      {%- if caps_quantity %}
+                      max="{{ variant.inventory_quantity }}"
+                      title="Only {{ variant.inventory_quantity }} left"
+                      {%- endif %}
                       step="1"
                       value="0"
                       class="bulk-order-table__input"
@@ -125,6 +133,21 @@
 
     var button = root.querySelector('[data-bulk-order-submit]');
     var status = root.querySelector('[data-bulk-order-status]');
+
+    root.addEventListener('input', function(event) {
+      var input = event.target;
+      if (!input.matches('input[data-variant-id]')) return;
+
+      var value = parseInt(input.value, 10);
+      if (isNaN(value)) return;
+
+      var max = input.getAttribute('max');
+      if (value < 0) {
+        input.value = 0;
+      } else if (max !== null && value > parseInt(max, 10)) {
+        input.value = max;
+      }
+    });
 
     button.addEventListener('click', function() {
       var inputs = root.querySelectorAll('input[data-variant-id]');
