@@ -137,6 +137,15 @@
 
     var clampMessageTimeout;
 
+    function showMaxReachedMessage(input, max) {
+      var label = input.getAttribute('data-label') || 'this item';
+      status.textContent = 'Only ' + max + ' in stock for ' + label + ' — quantity adjusted.';
+      clearTimeout(clampMessageTimeout);
+      clampMessageTimeout = setTimeout(function() {
+        status.textContent = '';
+      }, 4000);
+    }
+
     root.addEventListener('input', function(event) {
       var input = event.target;
       if (!input.matches('input[data-variant-id]')) return;
@@ -149,13 +158,42 @@
         input.value = 0;
       } else if (max !== null && value > parseInt(max, 10)) {
         input.value = max;
+        showMaxReachedMessage(input, max);
+      }
+    });
 
-        var label = input.getAttribute('data-label') || 'this item';
-        status.textContent = 'Only ' + max + ' in stock for ' + label + ' — quantity adjusted.';
-        clearTimeout(clampMessageTimeout);
-        clampMessageTimeout = setTimeout(function() {
-          status.textContent = '';
-        }, 4000);
+    // The browser silently blocks the number input's up/down arrows (keyboard
+    // and the native spinner buttons) once `max` is reached, without firing
+    // an `input` event — so those interactions need their own message.
+    root.addEventListener('keydown', function(event) {
+      var input = event.target;
+      if (!input.matches('input[data-variant-id]')) return;
+      if (event.key !== 'ArrowUp') return;
+
+      var max = input.getAttribute('max');
+      if (max === null) return;
+
+      var value = parseInt(input.value, 10) || 0;
+      if (value >= parseInt(max, 10)) {
+        showMaxReachedMessage(input, max);
+      }
+    });
+
+    root.addEventListener('mousedown', function(event) {
+      var input = event.target;
+      if (!input.matches('input[data-variant-id]')) return;
+
+      var max = input.getAttribute('max');
+      if (max === null) return;
+
+      var rect = input.getBoundingClientRect();
+      var clickedStepper = event.clientX > rect.right - 20;
+      var clickedTopHalf = event.clientY < rect.top + rect.height / 2;
+      if (!clickedStepper || !clickedTopHalf) return;
+
+      var value = parseInt(input.value, 10) || 0;
+      if (value >= parseInt(max, 10)) {
+        showMaxReachedMessage(input, max);
       }
     });
 
