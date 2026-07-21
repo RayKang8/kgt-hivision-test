@@ -44,6 +44,7 @@
                       value="0"
                       class="bulk-order-table__input"
                       data-variant-id="{{ variant.id }}"
+                      data-label="{{ product.title }} {{ variant.title }}"
                       aria-label="{{ product.title }} {{ variant.title }} quantity">
                   {%- else -%}
                     <input type="number" class="bulk-order-table__input" value="0" disabled title="Sold out">
@@ -134,6 +135,8 @@
     var button = root.querySelector('[data-bulk-order-submit]');
     var status = root.querySelector('[data-bulk-order-status]');
 
+    var clampMessageTimeout;
+
     root.addEventListener('input', function(event) {
       var input = event.target;
       if (!input.matches('input[data-variant-id]')) return;
@@ -146,6 +149,13 @@
         input.value = 0;
       } else if (max !== null && value > parseInt(max, 10)) {
         input.value = max;
+
+        var label = input.getAttribute('data-label') || 'this item';
+        status.textContent = 'Only ' + max + ' in stock for ' + label + ' — quantity adjusted.';
+        clearTimeout(clampMessageTimeout);
+        clampMessageTimeout = setTimeout(function() {
+          status.textContent = '';
+        }, 4000);
       }
     });
 
