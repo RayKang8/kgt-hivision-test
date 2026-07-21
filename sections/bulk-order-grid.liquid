@@ -18,13 +18,28 @@
 
           {%- if matched_count == 1 -%}
             {%- capture table_head -%}
-              {%- for variant in product.variants -%}<th>{{ variant.title }}</th>{%- endfor -%}
+              {%- for variant in product.variants -%}
+                <th><span class="bulk-order-table__variant-chip">{{ variant.title }}</span></th>
+              {%- endfor -%}
             {%- endcapture -%}
           {%- endif -%}
 
           {%- capture row -%}
             <tr>
-              <td class="bulk-order-table__product-col">{{ product.title }}</td>
+              <td class="bulk-order-table__product-col">
+                <div class="bulk-order-product">
+                  {%- if product.featured_image -%}
+                    <img
+                      class="bulk-order-product__image"
+                      src="{{ product.featured_image | img_url: '80x80', crop: 'center' }}"
+                      alt=""
+                      width="40"
+                      height="40"
+                      loading="lazy">
+                  {%- endif -%}
+                  <span class="bulk-order-product__title">{{ product.title }}</span>
+                </div>
+              </td>
               {%- for variant in product.variants -%}
                 <td>
                   {%- if variant.available -%}
@@ -32,22 +47,26 @@
                     {%- if variant.inventory_management == 'shopify' and variant.inventory_policy == 'deny' -%}
                       {%- assign caps_quantity = true -%}
                     {%- endif -%}
-                    <input
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      {%- if caps_quantity %}
-                      max="{{ variant.inventory_quantity }}"
-                      title="Only {{ variant.inventory_quantity }} left"
-                      {%- endif %}
-                      step="1"
-                      value="0"
-                      class="bulk-order-table__input"
-                      data-variant-id="{{ variant.id }}"
-                      data-label="{{ product.title }} {{ variant.title }}"
-                      aria-label="{{ product.title }} {{ variant.title }} quantity">
+                    <div class="bulk-order-stepper">
+                      <button type="button" class="bulk-order-stepper__btn" data-step="-1" aria-label="Decrease quantity">&minus;</button>
+                      <input
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        {%- if caps_quantity %}
+                        max="{{ variant.inventory_quantity }}"
+                        title="Only {{ variant.inventory_quantity }} left"
+                        {%- endif %}
+                        step="1"
+                        value="0"
+                        class="bulk-order-table__input"
+                        data-variant-id="{{ variant.id }}"
+                        data-label="{{ product.title }} {{ variant.title }}"
+                        aria-label="{{ product.title }} {{ variant.title }} quantity">
+                      <button type="button" class="bulk-order-stepper__btn" data-step="1" aria-label="Increase quantity">&plus;</button>
+                    </div>
                   {%- else -%}
-                    <input type="number" class="bulk-order-table__input" value="0" disabled title="Sold out">
+                    <span class="bulk-order-table__soldout">Sold out</span>
                   {%- endif -%}
                 </td>
               {%- endfor -%}
@@ -64,66 +83,198 @@
       No products found. Pick a collection for this section in the theme editor, and make sure it contains products tagged &ldquo;{{ section.settings.tag }}&rdquo;.
     </p>
   {%- else -%}
-    <div class="bulk-order-table-wrapper" data-bulk-order-root="{{ section.id }}">
-      <table class="bulk-order-table">
-        <thead>
-          <tr>
-            <th class="bulk-order-table__product-col">Product</th>
-            {{ table_head }}
-          </tr>
-        </thead>
-        <tbody>
-          {{ table_body }}
-        </tbody>
-      </table>
+    <div class="bulk-order-card" data-bulk-order-root="{{ section.id }}">
+      <div class="bulk-order-table-wrapper">
+        <table class="bulk-order-table">
+          <thead>
+            <tr>
+              <th class="bulk-order-table__product-col">Style</th>
+              {{ table_head }}
+            </tr>
+          </thead>
+          <tbody>
+            {{ table_body }}
+          </tbody>
+        </table>
+      </div>
 
       <div class="bulk-order-table__actions">
+        <span class="bulk-order-table__summary" data-bulk-order-summary></span>
         <button type="button" class="btn" data-bulk-order-submit>{{ section.settings.button_label }}</button>
-        <span class="bulk-order-table__status" data-bulk-order-status role="status"></span>
       </div>
+      <div class="bulk-order-table__status" data-bulk-order-status role="status"></div>
     </div>
   {%- endif -%}
 </div>
 
 <style>
+  .bulk-order-{{ section.id }} .bulk-order-card {
+    margin-top: 2em;
+    background-color: var(--color-bg-alt, #fff);
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
   .bulk-order-{{ section.id }} .bulk-order-table-wrapper {
     overflow-x: auto;
-    margin-top: 2em;
   }
 
   .bulk-order-{{ section.id }} .bulk-order-table {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     width: 100%;
-    min-width: 480px;
+    min-width: 560px;
   }
 
   .bulk-order-{{ section.id }} .bulk-order-table th,
   .bulk-order-{{ section.id }} .bulk-order-table td {
-    border: 1px solid #ddd;
-    padding: 10px 12px;
+    padding: 12px 14px;
     text-align: center;
+    border-bottom: 1px solid var(--color-border, #e6e6e6);
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table thead th {
+    font-family: var(--font-stack-header, inherit);
+    font-size: 0.8em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-body-text, #666);
+    font-weight: normal;
+    border-bottom-width: 2px;
+    white-space: nowrap;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__variant-chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: var(--color-bg, #f2f2f2);
   }
 
   .bulk-order-{{ section.id }} .bulk-order-table__product-col {
     text-align: left;
     white-space: nowrap;
+    position: sticky;
+    left: 0;
+    background-color: var(--color-bg-alt, #fff);
+    z-index: 1;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table tbody tr:hover td {
+    background-color: var(--color-bg, #fafafa);
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table tbody tr:hover .bulk-order-table__product-col {
+    background-color: var(--color-bg, #fafafa);
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-product {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-product__image {
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-product__title {
+    font-weight: var(--font-weight-header, 600);
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-stepper {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--color-border-form, #ccc);
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--color-text-field, #fff);
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-stepper__btn {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--color-text-field-text, #333);
+    width: 28px;
+    line-height: 1;
+    font-size: 1em;
+    cursor: pointer;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-stepper__btn:hover {
+    background-color: var(--color-bg, #f2f2f2);
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-stepper__btn:active {
+    background-color: var(--color-border, #e6e6e6);
   }
 
   .bulk-order-{{ section.id }} .bulk-order-table__input {
-    width: 64px;
+    -moz-appearance: textfield;
+    appearance: none;
+    width: 44px;
+    border: none;
+    border-left: 1px solid var(--color-border-form, #ccc);
+    border-right: 1px solid var(--color-border-form, #ccc);
     text-align: center;
-    padding: 6px;
+    padding: 6px 2px;
+    background-color: var(--color-text-field, #fff);
+    color: var(--color-text-field-text, #333);
+    font-size: 1em;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__input::-webkit-outer-spin-button,
+  .bulk-order-{{ section.id }} .bulk-order-table__input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 1px var(--color-text-focus, #000);
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__soldout {
+    display: inline-block;
+    font-size: 0.85em;
+    color: var(--color-body-text, #999);
+    opacity: 0.65;
   }
 
   .bulk-order-{{ section.id }} .bulk-order-table__actions {
-    margin-top: 1.5em;
+    margin-top: 20px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1em;
+    flex-wrap: wrap;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__summary {
+    font-size: 0.9em;
+    color: var(--color-body-text, #666);
   }
 
   .bulk-order-{{ section.id }} .bulk-order-table__status {
+    margin-top: 10px;
     font-size: 0.9em;
+    color: var(--color-body-text, #666);
+    min-height: 1.2em;
+  }
+
+  .bulk-order-{{ section.id }} .bulk-order-table__status.is-error {
+    color: var(--color-sale-text, #c0392b);
+  }
+
+  @media only screen and (max-width: 749px) {
+    .bulk-order-{{ section.id }} .bulk-order-card {
+      padding: 16px;
+    }
   }
 </style>
 
@@ -134,22 +285,22 @@
 
     var button = root.querySelector('[data-bulk-order-submit]');
     var status = root.querySelector('[data-bulk-order-status]');
+    var summary = root.querySelector('[data-bulk-order-summary]');
 
     var clampMessageTimeout;
 
     function showMaxReachedMessage(input, max) {
       var label = input.getAttribute('data-label') || 'this item';
       status.textContent = 'Only ' + max + ' in stock for ' + label + ' — quantity adjusted.';
+      status.classList.add('is-error');
       clearTimeout(clampMessageTimeout);
       clampMessageTimeout = setTimeout(function() {
         status.textContent = '';
+        status.classList.remove('is-error');
       }, 4000);
     }
 
-    root.addEventListener('input', function(event) {
-      var input = event.target;
-      if (!input.matches('input[data-variant-id]')) return;
-
+    function clampInput(input) {
       var value = parseInt(input.value, 10);
       if (isNaN(value)) return;
 
@@ -160,11 +311,35 @@
         input.value = max;
         showMaxReachedMessage(input, max);
       }
+    }
+
+    function updateSummary() {
+      var inputs = root.querySelectorAll('input[data-variant-id]');
+      var styles = 0;
+      var units = 0;
+
+      inputs.forEach(function(input) {
+        var qty = parseInt(input.value, 10) || 0;
+        if (qty > 0) {
+          styles += 1;
+          units += qty;
+        }
+      });
+
+      summary.textContent = units > 0
+        ? units + ' unit' + (units === 1 ? '' : 's') + ' across ' + styles + ' line' + (styles === 1 ? '' : 's')
+        : '';
+    }
+
+    root.addEventListener('input', function(event) {
+      var input = event.target;
+      if (!input.matches('input[data-variant-id]')) return;
+      clampInput(input);
+      updateSummary();
     });
 
-    // The browser silently blocks the number input's up/down arrows (keyboard
-    // and the native spinner buttons) once `max` is reached, without firing
-    // an `input` event — so those interactions need their own message.
+    // The browser silently blocks the number input's keyboard up-arrow once
+    // `max` is reached, without firing an `input` event — needs its own message.
     root.addEventListener('keydown', function(event) {
       var input = event.target;
       if (!input.matches('input[data-variant-id]')) return;
@@ -179,22 +354,24 @@
       }
     });
 
-    root.addEventListener('mousedown', function(event) {
-      var input = event.target;
-      if (!input.matches('input[data-variant-id]')) return;
+    root.addEventListener('click', function(event) {
+      var stepBtn = event.target.closest('.bulk-order-stepper__btn');
+      if (!stepBtn) return;
 
+      var step = parseInt(stepBtn.getAttribute('data-step'), 10);
+      var input = stepBtn.parentElement.querySelector('input[data-variant-id]');
+      var value = (parseInt(input.value, 10) || 0) + step;
       var max = input.getAttribute('max');
-      if (max === null) return;
 
-      var rect = input.getBoundingClientRect();
-      var clickedStepper = event.clientX > rect.right - 20;
-      var clickedTopHalf = event.clientY < rect.top + rect.height / 2;
-      if (!clickedStepper || !clickedTopHalf) return;
-
-      var value = parseInt(input.value, 10) || 0;
-      if (value >= parseInt(max, 10)) {
+      if (value < 0) {
+        value = 0;
+      } else if (max !== null && value > parseInt(max, 10)) {
+        value = parseInt(max, 10);
         showMaxReachedMessage(input, max);
       }
+
+      input.value = value;
+      updateSummary();
     });
 
     button.addEventListener('click', function() {
@@ -213,10 +390,12 @@
 
       if (items.length === 0) {
         status.textContent = 'Enter a quantity greater than 0 in at least one field.';
+        status.classList.add('is-error');
         return;
       }
 
       button.disabled = true;
+      status.classList.remove('is-error');
       status.textContent = 'Adding to cart…';
 
       fetch('/cart/add.js', {
@@ -241,6 +420,7 @@
         .catch(function(err) {
           button.disabled = false;
           status.textContent = err.message;
+          status.classList.add('is-error');
         });
     });
   })();
